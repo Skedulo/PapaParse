@@ -59,7 +59,7 @@ License: MIT
 	var Papa = {};
 
 	Papa.parse = CsvToJson;
-	Papa.unparse = JsonToCsv;
+	//Papa.unparse = JsonToCsv;
 
 	Papa.RECORD_SEP = String.fromCharCode(30);
 	Papa.UNIT_SEP = String.fromCharCode(31);
@@ -76,13 +76,13 @@ License: MIT
 	// Exposed for testing and development only
 	Papa.Parser = Parser;
 	Papa.ParserHandle = ParserHandle;
-	Papa.NetworkStreamer = NetworkStreamer;
+	//Papa.NetworkStreamer = NetworkStreamer;
 	Papa.FileStreamer = FileStreamer;
-	Papa.StringStreamer = StringStreamer;
-	Papa.ReadableStreamStreamer = ReadableStreamStreamer;
-	if (typeof PAPA_BROWSER_CONTEXT === 'undefined') {
-		Papa.DuplexStreamStreamer = DuplexStreamStreamer;
-	}
+	//Papa.StringStreamer = StringStreamer;
+	//Papa.ReadableStreamStreamer = ReadableStreamStreamer;
+	// if (typeof PAPA_BROWSER_CONTEXT === 'undefined') {
+	// 	Papa.DuplexStreamStreamer = DuplexStreamStreamer;
+	// }
 
 	if (global.jQuery)
 	{
@@ -225,24 +225,25 @@ License: MIT
 		}
 
 		var streamer = null;
-		if (_input === Papa.NODE_STREAM_INPUT && typeof PAPA_BROWSER_CONTEXT === 'undefined')
-		{
-			// create a node Duplex stream for use
-			// with .pipe
-			streamer = new DuplexStreamStreamer(_config);
-			return streamer.getStream();
-		}
-		else if (typeof _input === 'string')
+		// if (_input === Papa.NODE_STREAM_INPUT && typeof PAPA_BROWSER_CONTEXT === 'undefined')
+		// {
+		// 	// create a node Duplex stream for use
+		// 	// with .pipe
+		// 	streamer = new DuplexStreamStreamer(_config);
+		// 	return streamer.getStream();
+		// }
+		//else 
+		if (typeof _input === 'string')
 		{
 			if (_config.download)
 				streamer = new NetworkStreamer(_config);
 			else
 				streamer = new StringStreamer(_config);
 		}
-		else if (_input.readable === true && isFunction(_input.read) && isFunction(_input.on))
-		{
-			streamer = new ReadableStreamStreamer(_config);
-		}
+		// else if (_input.readable === true && isFunction(_input.read) && isFunction(_input.on))
+		// {
+		// 	streamer = new ReadableStreamStreamer(_config);
+		// }
 		else if ((global.File && _input instanceof File) || _input instanceof Object)	// ...Safari. (see issue #106)
 			streamer = new FileStreamer(_config);
 
@@ -254,221 +255,221 @@ License: MIT
 
 
 
-	function JsonToCsv(_input, _config)
-	{
-		// Default configuration
+	// function JsonToCsv(_input, _config)
+	// {
+	// 	// Default configuration
 
-		/** whether to surround every datum with quotes */
-		var _quotes = false;
+	// 	/** whether to surround every datum with quotes */
+	// 	var _quotes = false;
 
-		/** whether to write headers */
-		var _writeHeader = true;
+	// 	/** whether to write headers */
+	// 	var _writeHeader = true;
 
-		/** delimiting character(s) */
-		var _delimiter = ',';
+	// 	/** delimiting character(s) */
+	// 	var _delimiter = ',';
 
-		/** newline character(s) */
-		var _newline = '\r\n';
+	// 	/** newline character(s) */
+	// 	var _newline = '\r\n';
 
-		/** quote character */
-		var _quoteChar = '"';
+	// 	/** quote character */
+	// 	var _quoteChar = '"';
 
-		/** escaped quote character, either "" or <config.escapeChar>" */
-		var _escapedQuote = _quoteChar + _quoteChar;
+	// 	/** escaped quote character, either "" or <config.escapeChar>" */
+	// 	var _escapedQuote = _quoteChar + _quoteChar;
 
-		/** whether to skip empty lines */
-		var _skipEmptyLines = false;
+	// 	/** whether to skip empty lines */
+	// 	var _skipEmptyLines = false;
 
-		/** the columns (keys) we expect when we unparse objects */
-		var _columns = null;
+	// 	/** the columns (keys) we expect when we unparse objects */
+	// 	var _columns = null;
 
-		/** whether to prevent outputting cells that can be parsed as formulae by spreadsheet software (Excel and LibreOffice) */
-		var _escapeFormulae = false;
+	// 	/** whether to prevent outputting cells that can be parsed as formulae by spreadsheet software (Excel and LibreOffice) */
+	// 	var _escapeFormulae = false;
 
-		unpackConfig();
+	// 	unpackConfig();
 
-		var quoteCharRegex = new RegExp(escapeRegExp(_quoteChar), 'g');
+	// 	var quoteCharRegex = new RegExp(escapeRegExp(_quoteChar), 'g');
 
-		if (typeof _input === 'string')
-			_input = JSON.parse(_input);
+	// 	if (typeof _input === 'string')
+	// 		_input = JSON.parse(_input);
 
-		if (Array.isArray(_input))
-		{
-			if (!_input.length || Array.isArray(_input[0]))
-				return serialize(null, _input, _skipEmptyLines);
-			else if (typeof _input[0] === 'object')
-				return serialize(_columns || Object.keys(_input[0]), _input, _skipEmptyLines);
-		}
-		else if (typeof _input === 'object')
-		{
-			if (typeof _input.data === 'string')
-				_input.data = JSON.parse(_input.data);
+	// 	if (Array.isArray(_input))
+	// 	{
+	// 		if (!_input.length || Array.isArray(_input[0]))
+	// 			return serialize(null, _input, _skipEmptyLines);
+	// 		else if (typeof _input[0] === 'object')
+	// 			return serialize(_columns || Object.keys(_input[0]), _input, _skipEmptyLines);
+	// 	}
+	// 	else if (typeof _input === 'object')
+	// 	{
+	// 		if (typeof _input.data === 'string')
+	// 			_input.data = JSON.parse(_input.data);
 
-			if (Array.isArray(_input.data))
-			{
-				if (!_input.fields)
-					_input.fields =  _input.meta && _input.meta.fields;
+	// 		if (Array.isArray(_input.data))
+	// 		{
+	// 			if (!_input.fields)
+	// 				_input.fields =  _input.meta && _input.meta.fields;
 
-				if (!_input.fields)
-					_input.fields =  Array.isArray(_input.data[0])
-						? _input.fields
-						: typeof _input.data[0] === 'object'
-							? Object.keys(_input.data[0])
-							: [];
+	// 			if (!_input.fields)
+	// 				_input.fields =  Array.isArray(_input.data[0])
+	// 					? _input.fields
+	// 					: typeof _input.data[0] === 'object'
+	// 						? Object.keys(_input.data[0])
+	// 						: [];
 
-				if (!(Array.isArray(_input.data[0])) && typeof _input.data[0] !== 'object')
-					_input.data = [_input.data];	// handles input like [1,2,3] or ['asdf']
-			}
+	// 			if (!(Array.isArray(_input.data[0])) && typeof _input.data[0] !== 'object')
+	// 				_input.data = [_input.data];	// handles input like [1,2,3] or ['asdf']
+	// 		}
 
-			return serialize(_input.fields || [], _input.data || [], _skipEmptyLines);
-		}
+	// 		return serialize(_input.fields || [], _input.data || [], _skipEmptyLines);
+	// 	}
 
-		// Default (any valid paths should return before this)
-		throw new Error('Unable to serialize unrecognized input');
-
-
-		function unpackConfig()
-		{
-			if (typeof _config !== 'object')
-				return;
-
-			if (typeof _config.delimiter === 'string'
-                && !Papa.BAD_DELIMITERS.filter(function(value) { return _config.delimiter.indexOf(value) !== -1; }).length)
-			{
-				_delimiter = _config.delimiter;
-			}
-
-			if (typeof _config.quotes === 'boolean'
-				|| typeof _config.quotes === 'function'
-				|| Array.isArray(_config.quotes))
-				_quotes = _config.quotes;
-
-			if (typeof _config.skipEmptyLines === 'boolean'
-				|| typeof _config.skipEmptyLines === 'string')
-				_skipEmptyLines = _config.skipEmptyLines;
-
-			if (typeof _config.newline === 'string')
-				_newline = _config.newline;
-
-			if (typeof _config.quoteChar === 'string')
-				_quoteChar = _config.quoteChar;
-
-			if (typeof _config.header === 'boolean')
-				_writeHeader = _config.header;
-
-			if (Array.isArray(_config.columns)) {
-
-				if (_config.columns.length === 0) throw new Error('Option columns is empty');
-
-				_columns = _config.columns;
-			}
-
-			if (_config.escapeChar !== undefined) {
-				_escapedQuote = _config.escapeChar + _quoteChar;
-			}
-
-			if (typeof _config.escapeFormulae === 'boolean')
-				_escapeFormulae = _config.escapeFormulae;
-		}
+	// 	// Default (any valid paths should return before this)
+	// 	throw new Error('Unable to serialize unrecognized input');
 
 
-		/** The double for loop that iterates the data and writes out a CSV string including header row */
-		function serialize(fields, data, skipEmptyLines)
-		{
-			var csv = '';
+	// 	function unpackConfig()
+	// 	{
+	// 		if (typeof _config !== 'object')
+	// 			return;
 
-			if (typeof fields === 'string')
-				fields = JSON.parse(fields);
-			if (typeof data === 'string')
-				data = JSON.parse(data);
+	// 		if (typeof _config.delimiter === 'string'
+    //             && !Papa.BAD_DELIMITERS.filter(function(value) { return _config.delimiter.indexOf(value) !== -1; }).length)
+	// 		{
+	// 			_delimiter = _config.delimiter;
+	// 		}
 
-			var hasHeader = Array.isArray(fields) && fields.length > 0;
-			var dataKeyedByField = !(Array.isArray(data[0]));
+	// 		if (typeof _config.quotes === 'boolean'
+	// 			|| typeof _config.quotes === 'function'
+	// 			|| Array.isArray(_config.quotes))
+	// 			_quotes = _config.quotes;
 
-			// If there a header row, write it first
-			if (hasHeader && _writeHeader)
-			{
-				for (var i = 0; i < fields.length; i++)
-				{
-					if (i > 0)
-						csv += _delimiter;
-					csv += safe(fields[i], i);
-				}
-				if (data.length > 0)
-					csv += _newline;
-			}
+	// 		if (typeof _config.skipEmptyLines === 'boolean'
+	// 			|| typeof _config.skipEmptyLines === 'string')
+	// 			_skipEmptyLines = _config.skipEmptyLines;
 
-			// Then write out the data
-			for (var row = 0; row < data.length; row++)
-			{
-				var maxCol = hasHeader ? fields.length : data[row].length;
+	// 		if (typeof _config.newline === 'string')
+	// 			_newline = _config.newline;
 
-				var emptyLine = false;
-				var nullLine = hasHeader ? Object.keys(data[row]).length === 0 : data[row].length === 0;
-				if (skipEmptyLines && !hasHeader)
-				{
-					emptyLine = skipEmptyLines === 'greedy' ? data[row].join('').trim() === '' : data[row].length === 1 && data[row][0].length === 0;
-				}
-				if (skipEmptyLines === 'greedy' && hasHeader) {
-					var line = [];
-					for (var c = 0; c < maxCol; c++) {
-						var cx = dataKeyedByField ? fields[c] : c;
-						line.push(data[row][cx]);
-					}
-					emptyLine = line.join('').trim() === '';
-				}
-				if (!emptyLine)
-				{
-					for (var col = 0; col < maxCol; col++)
-					{
-						if (col > 0 && !nullLine)
-							csv += _delimiter;
-						var colIdx = hasHeader && dataKeyedByField ? fields[col] : col;
-						csv += safe(data[row][colIdx], col);
-					}
-					if (row < data.length - 1 && (!skipEmptyLines || (maxCol > 0 && !nullLine)))
-					{
-						csv += _newline;
-					}
-				}
-			}
-			return csv;
-		}
+	// 		if (typeof _config.quoteChar === 'string')
+	// 			_quoteChar = _config.quoteChar;
 
-		/** Encloses a value around quotes if needed (makes a value safe for CSV insertion) */
-		function safe(str, col)
-		{
-			if (typeof str === 'undefined' || str === null)
-				return '';
+	// 		if (typeof _config.header === 'boolean')
+	// 			_writeHeader = _config.header;
 
-			if (str.constructor === Date)
-				return JSON.stringify(str).slice(1, 25);
+	// 		if (Array.isArray(_config.columns)) {
 
-			if (_escapeFormulae === true && typeof str === "string" && (str.match(/^[=+\-@].*$/) !== null)) {
-				str = "'" + str;
-			}
+	// 			if (_config.columns.length === 0) throw new Error('Option columns is empty');
 
-			var escapedQuoteStr = str.toString().replace(quoteCharRegex, _escapedQuote);
+	// 			_columns = _config.columns;
+	// 		}
 
-			var needsQuotes = (typeof _quotes === 'boolean' && _quotes)
-							|| (typeof _quotes === 'function' && _quotes(str, col))
-							|| (Array.isArray(_quotes) && _quotes[col])
-							|| hasAny(escapedQuoteStr, Papa.BAD_DELIMITERS)
-							|| escapedQuoteStr.indexOf(_delimiter) > -1
-							|| escapedQuoteStr.charAt(0) === ' '
-							|| escapedQuoteStr.charAt(escapedQuoteStr.length - 1) === ' ';
+	// 		if (_config.escapeChar !== undefined) {
+	// 			_escapedQuote = _config.escapeChar + _quoteChar;
+	// 		}
 
-			return needsQuotes ? _quoteChar + escapedQuoteStr + _quoteChar : escapedQuoteStr;
-		}
+	// 		if (typeof _config.escapeFormulae === 'boolean')
+	// 			_escapeFormulae = _config.escapeFormulae;
+	// 	}
 
-		function hasAny(str, substrings)
-		{
-			for (var i = 0; i < substrings.length; i++)
-				if (str.indexOf(substrings[i]) > -1)
-					return true;
-			return false;
-		}
-	}
+
+	// 	/** The double for loop that iterates the data and writes out a CSV string including header row */
+	// 	function serialize(fields, data, skipEmptyLines)
+	// 	{
+	// 		var csv = '';
+
+	// 		if (typeof fields === 'string')
+	// 			fields = JSON.parse(fields);
+	// 		if (typeof data === 'string')
+	// 			data = JSON.parse(data);
+
+	// 		var hasHeader = Array.isArray(fields) && fields.length > 0;
+	// 		var dataKeyedByField = !(Array.isArray(data[0]));
+
+	// 		// If there a header row, write it first
+	// 		if (hasHeader && _writeHeader)
+	// 		{
+	// 			for (var i = 0; i < fields.length; i++)
+	// 			{
+	// 				if (i > 0)
+	// 					csv += _delimiter;
+	// 				csv += safe(fields[i], i);
+	// 			}
+	// 			if (data.length > 0)
+	// 				csv += _newline;
+	// 		}
+
+	// 		// Then write out the data
+	// 		for (var row = 0; row < data.length; row++)
+	// 		{
+	// 			var maxCol = hasHeader ? fields.length : data[row].length;
+
+	// 			var emptyLine = false;
+	// 			var nullLine = hasHeader ? Object.keys(data[row]).length === 0 : data[row].length === 0;
+	// 			if (skipEmptyLines && !hasHeader)
+	// 			{
+	// 				emptyLine = skipEmptyLines === 'greedy' ? data[row].join('').trim() === '' : data[row].length === 1 && data[row][0].length === 0;
+	// 			}
+	// 			if (skipEmptyLines === 'greedy' && hasHeader) {
+	// 				var line = [];
+	// 				for (var c = 0; c < maxCol; c++) {
+	// 					var cx = dataKeyedByField ? fields[c] : c;
+	// 					line.push(data[row][cx]);
+	// 				}
+	// 				emptyLine = line.join('').trim() === '';
+	// 			}
+	// 			if (!emptyLine)
+	// 			{
+	// 				for (var col = 0; col < maxCol; col++)
+	// 				{
+	// 					if (col > 0 && !nullLine)
+	// 						csv += _delimiter;
+	// 					var colIdx = hasHeader && dataKeyedByField ? fields[col] : col;
+	// 					csv += safe(data[row][colIdx], col);
+	// 				}
+	// 				if (row < data.length - 1 && (!skipEmptyLines || (maxCol > 0 && !nullLine)))
+	// 				{
+	// 					csv += _newline;
+	// 				}
+	// 			}
+	// 		}
+	// 		return csv;
+	// 	}
+
+	// 	/** Encloses a value around quotes if needed (makes a value safe for CSV insertion) */
+	// 	function safe(str, col)
+	// 	{
+	// 		if (typeof str === 'undefined' || str === null)
+	// 			return '';
+
+	// 		if (str.constructor === Date)
+	// 			return JSON.stringify(str).slice(1, 25);
+
+	// 		if (_escapeFormulae === true && typeof str === "string" && (str.match(/^[=+\-@].*$/) !== null)) {
+	// 			str = "'" + str;
+	// 		}
+
+	// 		var escapedQuoteStr = str.toString().replace(quoteCharRegex, _escapedQuote);
+
+	// 		var needsQuotes = (typeof _quotes === 'boolean' && _quotes)
+	// 						|| (typeof _quotes === 'function' && _quotes(str, col))
+	// 						|| (Array.isArray(_quotes) && _quotes[col])
+	// 						|| hasAny(escapedQuoteStr, Papa.BAD_DELIMITERS)
+	// 						|| escapedQuoteStr.indexOf(_delimiter) > -1
+	// 						|| escapedQuoteStr.charAt(0) === ' '
+	// 						|| escapedQuoteStr.charAt(escapedQuoteStr.length - 1) === ' ';
+
+	// 		return needsQuotes ? _quoteChar + escapedQuoteStr + _quoteChar : escapedQuoteStr;
+	// 	}
+
+	// 	function hasAny(str, substrings)
+	// 	{
+	// 		for (var i = 0; i < substrings.length; i++)
+	// 			if (str.indexOf(substrings[i]) > -1)
+	// 				return true;
+	// 		return false;
+	// 	}
+	// }
 
 	/** ChunkStreamer is the base prototype for various streamer implementations. */
 	function ChunkStreamer(config)
@@ -506,7 +507,9 @@ License: MIT
 			// Rejoin the line we likely just split in two by chunking the file
 			var aggregate = this._partialLine + chunk;
 			this._partialLine = '';
-
+			// console.log({
+			// 	aggregate
+			// })
 			var results = this._handle.parse(aggregate, this._baseIndex, !this._finished);
 
 			if (this._handle.paused() || this._handle.aborted()) {
@@ -591,121 +594,121 @@ License: MIT
 	}
 
 
-	function NetworkStreamer(config)
-	{
-		config = config || {};
-		if (!config.chunkSize)
-			config.chunkSize = Papa.RemoteChunkSize;
-		ChunkStreamer.call(this, config);
+	// function NetworkStreamer(config)
+	// {
+	// 	config = config || {};
+	// 	if (!config.chunkSize)
+	// 		config.chunkSize = Papa.RemoteChunkSize;
+	// 	ChunkStreamer.call(this, config);
 
-		var xhr;
+	// 	var xhr;
 
-		if (IS_WORKER)
-		{
-			this._nextChunk = function()
-			{
-				this._readChunk();
-				this._chunkLoaded();
-			};
-		}
-		else
-		{
-			this._nextChunk = function()
-			{
-				this._readChunk();
-			};
-		}
+	// 	if (IS_WORKER)
+	// 	{
+	// 		this._nextChunk = function()
+	// 		{
+	// 			this._readChunk();
+	// 			this._chunkLoaded();
+	// 		};
+	// 	}
+	// 	else
+	// 	{
+	// 		this._nextChunk = function()
+	// 		{
+	// 			this._readChunk();
+	// 		};
+	// 	}
 
-		this.stream = function(url)
-		{
-			this._input = url;
-			this._nextChunk();	// Starts streaming
-		};
+	// 	this.stream = function(url)
+	// 	{
+	// 		this._input = url;
+	// 		this._nextChunk();	// Starts streaming
+	// 	};
 
-		this._readChunk = function()
-		{
-			if (this._finished)
-			{
-				this._chunkLoaded();
-				return;
-			}
+	// 	this._readChunk = function()
+	// 	{
+	// 		if (this._finished)
+	// 		{
+	// 			this._chunkLoaded();
+	// 			return;
+	// 		}
 
-			xhr = new XMLHttpRequest();
+	// 		xhr = new XMLHttpRequest();
 
-			if (this._config.withCredentials)
-			{
-				xhr.withCredentials = this._config.withCredentials;
-			}
+	// 		if (this._config.withCredentials)
+	// 		{
+	// 			xhr.withCredentials = this._config.withCredentials;
+	// 		}
 
-			if (!IS_WORKER)
-			{
-				xhr.onload = bindFunction(this._chunkLoaded, this);
-				xhr.onerror = bindFunction(this._chunkError, this);
-			}
+	// 		if (!IS_WORKER)
+	// 		{
+	// 			xhr.onload = bindFunction(this._chunkLoaded, this);
+	// 			xhr.onerror = bindFunction(this._chunkError, this);
+	// 		}
 
-			xhr.open(this._config.downloadRequestBody ? 'POST' : 'GET', this._input, !IS_WORKER);
-			// Headers can only be set when once the request state is OPENED
-			if (this._config.downloadRequestHeaders)
-			{
-				var headers = this._config.downloadRequestHeaders;
+	// 		xhr.open(this._config.downloadRequestBody ? 'POST' : 'GET', this._input, !IS_WORKER);
+	// 		// Headers can only be set when once the request state is OPENED
+	// 		if (this._config.downloadRequestHeaders)
+	// 		{
+	// 			var headers = this._config.downloadRequestHeaders;
 
-				for (var headerName in headers)
-				{
-					xhr.setRequestHeader(headerName, headers[headerName]);
-				}
-			}
+	// 			for (var headerName in headers)
+	// 			{
+	// 				xhr.setRequestHeader(headerName, headers[headerName]);
+	// 			}
+	// 		}
 
-			if (this._config.chunkSize)
-			{
-				var end = this._start + this._config.chunkSize - 1;	// minus one because byte range is inclusive
-				xhr.setRequestHeader('Range', 'bytes=' + this._start + '-' + end);
-			}
+	// 		if (this._config.chunkSize)
+	// 		{
+	// 			var end = this._start + this._config.chunkSize - 1;	// minus one because byte range is inclusive
+	// 			xhr.setRequestHeader('Range', 'bytes=' + this._start + '-' + end);
+	// 		}
 
-			try {
-				xhr.send(this._config.downloadRequestBody);
-			}
-			catch (err) {
-				this._chunkError(err.message);
-			}
+	// 		try {
+	// 			xhr.send(this._config.downloadRequestBody);
+	// 		}
+	// 		catch (err) {
+	// 			this._chunkError(err.message);
+	// 		}
 
-			if (IS_WORKER && xhr.status === 0)
-				this._chunkError();
-		};
+	// 		if (IS_WORKER && xhr.status === 0)
+	// 			this._chunkError();
+	// 	};
 
-		this._chunkLoaded = function()
-		{
-			if (xhr.readyState !== 4)
-				return;
+	// 	this._chunkLoaded = function()
+	// 	{
+	// 		if (xhr.readyState !== 4)
+	// 			return;
 
-			if (xhr.status < 200 || xhr.status >= 400)
-			{
-				this._chunkError();
-				return;
-			}
+	// 		if (xhr.status < 200 || xhr.status >= 400)
+	// 		{
+	// 			this._chunkError();
+	// 			return;
+	// 		}
 
-			// Use chunckSize as it may be a diference on reponse lentgh due to characters with more than 1 byte
-			this._start += this._config.chunkSize ? this._config.chunkSize : xhr.responseText.length;
-			this._finished = !this._config.chunkSize || this._start >= getFileSize(xhr);
-			this.parseChunk(xhr.responseText);
-		};
+	// 		// Use chunckSize as it may be a diference on reponse lentgh due to characters with more than 1 byte
+	// 		this._start += this._config.chunkSize ? this._config.chunkSize : xhr.responseText.length;
+	// 		this._finished = !this._config.chunkSize || this._start >= getFileSize(xhr);
+	// 		this.parseChunk(xhr.responseText);
+	// 	};
 
-		this._chunkError = function(errorMessage)
-		{
-			var errorText = xhr.statusText || errorMessage;
-			this._sendError(new Error(errorText));
-		};
+	// 	this._chunkError = function(errorMessage)
+	// 	{
+	// 		var errorText = xhr.statusText || errorMessage;
+	// 		this._sendError(new Error(errorText));
+	// 	};
 
-		function getFileSize(xhr)
-		{
-			var contentRange = xhr.getResponseHeader('Content-Range');
-			if (contentRange === null) { // no content range, then finish!
-				return -1;
-			}
-			return parseInt(contentRange.substring(contentRange.lastIndexOf('/') + 1));
-		}
-	}
-	NetworkStreamer.prototype = Object.create(ChunkStreamer.prototype);
-	NetworkStreamer.prototype.constructor = NetworkStreamer;
+	// 	function getFileSize(xhr)
+	// 	{
+	// 		var contentRange = xhr.getResponseHeader('Content-Range');
+	// 		if (contentRange === null) { // no content range, then finish!
+	// 			return -1;
+	// 		}
+	// 		return parseInt(contentRange.substring(contentRange.lastIndexOf('/') + 1));
+	// 	}
+	// }
+	// NetworkStreamer.prototype = Object.create(ChunkStreamer.prototype);
+	// NetworkStreamer.prototype.constructor = NetworkStreamer;
 
 
 	function FileStreamer(config)
@@ -775,230 +778,230 @@ License: MIT
 	FileStreamer.prototype.constructor = FileStreamer;
 
 
-	function StringStreamer(config)
-	{
-		config = config || {};
-		ChunkStreamer.call(this, config);
+	// function StringStreamer(config)
+	// {
+	// 	config = config || {};
+	// 	ChunkStreamer.call(this, config);
 
-		var remaining;
-		this.stream = function(s)
-		{
-			remaining = s;
-			return this._nextChunk();
-		};
-		this._nextChunk = function()
-		{
-			if (this._finished) return;
-			var size = this._config.chunkSize;
-			var chunk;
-			if(size) {
-				chunk = remaining.substring(0, size);
-				remaining = remaining.substring(size);
-			} else {
-				chunk = remaining;
-				remaining = '';
-			}
-			this._finished = !remaining;
-			return this.parseChunk(chunk);
-		};
-	}
-	StringStreamer.prototype = Object.create(StringStreamer.prototype);
-	StringStreamer.prototype.constructor = StringStreamer;
-
-
-	function ReadableStreamStreamer(config)
-	{
-		config = config || {};
-
-		ChunkStreamer.call(this, config);
-
-		var queue = [];
-		var parseOnData = true;
-		var streamHasEnded = false;
-
-		this.pause = function()
-		{
-			ChunkStreamer.prototype.pause.apply(this, arguments);
-			this._input.pause();
-		};
-
-		this.resume = function()
-		{
-			ChunkStreamer.prototype.resume.apply(this, arguments);
-			this._input.resume();
-		};
-
-		this.stream = function(stream)
-		{
-			this._input = stream;
-
-			this._input.on('data', this._streamData);
-			this._input.on('end', this._streamEnd);
-			this._input.on('error', this._streamError);
-		};
-
-		this._checkIsFinished = function()
-		{
-			if (streamHasEnded && queue.length === 1) {
-				this._finished = true;
-			}
-		};
-
-		this._nextChunk = function()
-		{
-			this._checkIsFinished();
-			if (queue.length)
-			{
-				this.parseChunk(queue.shift());
-			}
-			else
-			{
-				parseOnData = true;
-			}
-		};
-
-		this._streamData = bindFunction(function(chunk)
-		{
-			try
-			{
-				queue.push(typeof chunk === 'string' ? chunk : chunk.toString(this._config.encoding));
-
-				if (parseOnData)
-				{
-					parseOnData = false;
-					this._checkIsFinished();
-					this.parseChunk(queue.shift());
-				}
-			}
-			catch (error)
-			{
-				this._streamError(error);
-			}
-		}, this);
-
-		this._streamError = bindFunction(function(error)
-		{
-			this._streamCleanUp();
-			this._sendError(error);
-		}, this);
-
-		this._streamEnd = bindFunction(function()
-		{
-			this._streamCleanUp();
-			streamHasEnded = true;
-			this._streamData('');
-		}, this);
-
-		this._streamCleanUp = bindFunction(function()
-		{
-			this._input.removeListener('data', this._streamData);
-			this._input.removeListener('end', this._streamEnd);
-			this._input.removeListener('error', this._streamError);
-		}, this);
-	}
-	ReadableStreamStreamer.prototype = Object.create(ChunkStreamer.prototype);
-	ReadableStreamStreamer.prototype.constructor = ReadableStreamStreamer;
+	// 	var remaining;
+	// 	this.stream = function(s)
+	// 	{
+	// 		remaining = s;
+	// 		return this._nextChunk();
+	// 	};
+	// 	this._nextChunk = function()
+	// 	{
+	// 		if (this._finished) return;
+	// 		var size = this._config.chunkSize;
+	// 		var chunk;
+	// 		if(size) {
+	// 			chunk = remaining.substring(0, size);
+	// 			remaining = remaining.substring(size);
+	// 		} else {
+	// 			chunk = remaining;
+	// 			remaining = '';
+	// 		}
+	// 		this._finished = !remaining;
+	// 		return this.parseChunk(chunk);
+	// 	};
+	// }
+	// StringStreamer.prototype = Object.create(StringStreamer.prototype);
+	// StringStreamer.prototype.constructor = StringStreamer;
 
 
-	function DuplexStreamStreamer(_config) {
-		var Duplex = require('stream').Duplex;
-		var config = copy(_config);
-		var parseOnWrite = true;
-		var writeStreamHasFinished = false;
-		var parseCallbackQueue = [];
-		var stream = null;
+	// function ReadableStreamStreamer(config)
+	// {
+	// 	config = config || {};
 
-		this._onCsvData = function(results)
-		{
-			var data = results.data;
-			if (!stream.push(data) && !this._handle.paused()) {
-				// the writeable consumer buffer has filled up
-				// so we need to pause until more items
-				// can be processed
-				this._handle.pause();
-			}
-		};
+	// 	ChunkStreamer.call(this, config);
 
-		this._onCsvComplete = function()
-		{
-			// node will finish the read stream when
-			// null is pushed
-			stream.push(null);
-		};
+	// 	var queue = [];
+	// 	var parseOnData = true;
+	// 	var streamHasEnded = false;
 
-		config.step = bindFunction(this._onCsvData, this);
-		config.complete = bindFunction(this._onCsvComplete, this);
-		ChunkStreamer.call(this, config);
+	// 	this.pause = function()
+	// 	{
+	// 		ChunkStreamer.prototype.pause.apply(this, arguments);
+	// 		this._input.pause();
+	// 	};
 
-		this._nextChunk = function()
-		{
-			if (writeStreamHasFinished && parseCallbackQueue.length === 1) {
-				this._finished = true;
-			}
-			if (parseCallbackQueue.length) {
-				parseCallbackQueue.shift()();
-			} else {
-				parseOnWrite = true;
-			}
-		};
+	// 	this.resume = function()
+	// 	{
+	// 		ChunkStreamer.prototype.resume.apply(this, arguments);
+	// 		this._input.resume();
+	// 	};
 
-		this._addToParseQueue = function(chunk, callback)
-		{
-			// add to queue so that we can indicate
-			// completion via callback
-			// node will automatically pause the incoming stream
-			// when too many items have been added without their
-			// callback being invoked
-			parseCallbackQueue.push(bindFunction(function() {
-				this.parseChunk(typeof chunk === 'string' ? chunk : chunk.toString(config.encoding));
-				if (isFunction(callback)) {
-					return callback();
-				}
-			}, this));
-			if (parseOnWrite) {
-				parseOnWrite = false;
-				this._nextChunk();
-			}
-		};
+	// 	this.stream = function(stream)
+	// 	{
+	// 		this._input = stream;
 
-		this._onRead = function()
-		{
-			if (this._handle.paused()) {
-				// the writeable consumer can handle more data
-				// so resume the chunk parsing
-				this._handle.resume();
-			}
-		};
+	// 		this._input.on('data', this._streamData);
+	// 		this._input.on('end', this._streamEnd);
+	// 		this._input.on('error', this._streamError);
+	// 	};
 
-		this._onWrite = function(chunk, encoding, callback)
-		{
-			this._addToParseQueue(chunk, callback);
-		};
+	// 	this._checkIsFinished = function()
+	// 	{
+	// 		if (streamHasEnded && queue.length === 1) {
+	// 			this._finished = true;
+	// 		}
+	// 	};
 
-		this._onWriteComplete = function()
-		{
-			writeStreamHasFinished = true;
-			// have to write empty string
-			// so parser knows its done
-			this._addToParseQueue('');
-		};
+	// 	this._nextChunk = function()
+	// 	{
+	// 		this._checkIsFinished();
+	// 		if (queue.length)
+	// 		{
+	// 			this.parseChunk(queue.shift());
+	// 		}
+	// 		else
+	// 		{
+	// 			parseOnData = true;
+	// 		}
+	// 	};
 
-		this.getStream = function()
-		{
-			return stream;
-		};
-		stream = new Duplex({
-			readableObjectMode: true,
-			decodeStrings: false,
-			read: bindFunction(this._onRead, this),
-			write: bindFunction(this._onWrite, this)
-		});
-		stream.once('finish', bindFunction(this._onWriteComplete, this));
-	}
-	if (typeof PAPA_BROWSER_CONTEXT === 'undefined') {
-		DuplexStreamStreamer.prototype = Object.create(ChunkStreamer.prototype);
-		DuplexStreamStreamer.prototype.constructor = DuplexStreamStreamer;
-	}
+	// 	this._streamData = bindFunction(function(chunk)
+	// 	{
+	// 		try
+	// 		{
+	// 			queue.push(typeof chunk === 'string' ? chunk : chunk.toString(this._config.encoding));
+
+	// 			if (parseOnData)
+	// 			{
+	// 				parseOnData = false;
+	// 				this._checkIsFinished();
+	// 				this.parseChunk(queue.shift());
+	// 			}
+	// 		}
+	// 		catch (error)
+	// 		{
+	// 			this._streamError(error);
+	// 		}
+	// 	}, this);
+
+	// 	this._streamError = bindFunction(function(error)
+	// 	{
+	// 		this._streamCleanUp();
+	// 		this._sendError(error);
+	// 	}, this);
+
+	// 	this._streamEnd = bindFunction(function()
+	// 	{
+	// 		this._streamCleanUp();
+	// 		streamHasEnded = true;
+	// 		this._streamData('');
+	// 	}, this);
+
+	// 	this._streamCleanUp = bindFunction(function()
+	// 	{
+	// 		this._input.removeListener('data', this._streamData);
+	// 		this._input.removeListener('end', this._streamEnd);
+	// 		this._input.removeListener('error', this._streamError);
+	// 	}, this);
+	// }
+	// ReadableStreamStreamer.prototype = Object.create(ChunkStreamer.prototype);
+	// ReadableStreamStreamer.prototype.constructor = ReadableStreamStreamer;
+
+
+	// function DuplexStreamStreamer(_config) {
+	// 	var Duplex = require('stream').Duplex;
+	// 	var config = copy(_config);
+	// 	var parseOnWrite = true;
+	// 	var writeStreamHasFinished = false;
+	// 	var parseCallbackQueue = [];
+	// 	var stream = null;
+
+	// 	this._onCsvData = function(results)
+	// 	{
+	// 		var data = results.data;
+	// 		if (!stream.push(data) && !this._handle.paused()) {
+	// 			// the writeable consumer buffer has filled up
+	// 			// so we need to pause until more items
+	// 			// can be processed
+	// 			this._handle.pause();
+	// 		}
+	// 	};
+
+	// 	this._onCsvComplete = function()
+	// 	{
+	// 		// node will finish the read stream when
+	// 		// null is pushed
+	// 		stream.push(null);
+	// 	};
+
+	// 	config.step = bindFunction(this._onCsvData, this);
+	// 	config.complete = bindFunction(this._onCsvComplete, this);
+	// 	ChunkStreamer.call(this, config);
+
+	// 	this._nextChunk = function()
+	// 	{
+	// 		if (writeStreamHasFinished && parseCallbackQueue.length === 1) {
+	// 			this._finished = true;
+	// 		}
+	// 		if (parseCallbackQueue.length) {
+	// 			parseCallbackQueue.shift()();
+	// 		} else {
+	// 			parseOnWrite = true;
+	// 		}
+	// 	};
+
+	// 	this._addToParseQueue = function(chunk, callback)
+	// 	{
+	// 		// add to queue so that we can indicate
+	// 		// completion via callback
+	// 		// node will automatically pause the incoming stream
+	// 		// when too many items have been added without their
+	// 		// callback being invoked
+	// 		parseCallbackQueue.push(bindFunction(function() {
+	// 			this.parseChunk(typeof chunk === 'string' ? chunk : chunk.toString(config.encoding));
+	// 			if (isFunction(callback)) {
+	// 				return callback();
+	// 			}
+	// 		}, this));
+	// 		if (parseOnWrite) {
+	// 			parseOnWrite = false;
+	// 			this._nextChunk();
+	// 		}
+	// 	};
+
+	// 	this._onRead = function()
+	// 	{
+	// 		if (this._handle.paused()) {
+	// 			// the writeable consumer can handle more data
+	// 			// so resume the chunk parsing
+	// 			this._handle.resume();
+	// 		}
+	// 	};
+
+	// 	this._onWrite = function(chunk, encoding, callback)
+	// 	{
+	// 		this._addToParseQueue(chunk, callback);
+	// 	};
+
+	// 	this._onWriteComplete = function()
+	// 	{
+	// 		writeStreamHasFinished = true;
+	// 		// have to write empty string
+	// 		// so parser knows its done
+	// 		this._addToParseQueue('');
+	// 	};
+
+	// 	this.getStream = function()
+	// 	{
+	// 		return stream;
+	// 	};
+	// 	stream = new Duplex({
+	// 		readableObjectMode: true,
+	// 		decodeStrings: false,
+	// 		read: bindFunction(this._onRead, this),
+	// 		write: bindFunction(this._onWrite, this)
+	// 	});
+	// 	stream.once('finish', bindFunction(this._onWriteComplete, this));
+	// }
+	// if (typeof PAPA_BROWSER_CONTEXT === 'undefined') {
+	// 	DuplexStreamStreamer.prototype = Object.create(ChunkStreamer.prototype);
+	// 	DuplexStreamStreamer.prototype.constructor = DuplexStreamStreamer;
+	// }
 
 
 	// Use one ParserHandle per entire CSV file or string
@@ -1430,10 +1433,12 @@ License: MIT
 
 		// We're gonna need these at the Parser scope
 		var cursor = 0;
+		var bytePointer = 0;
 		var aborted = false;
 
 		this.parse = function(input, baseIndex, ignoreLastRow)
 		{
+			//console.log(input)
 			// For some reason, in Chrome, this speeds things up (!?)
 			if (typeof input !== 'string')
 				throw new Error('Input must be a string');
@@ -1448,13 +1453,15 @@ License: MIT
 
 			// Establish starting state
 			cursor = 0;
-			var data = [], errors = [], row = [], lastCursor = 0;
+			bytePointer = 0;
+			var data = [], errors = [], row = [], lastCursor = 0, lastBytePointer = 0;
 
 			if (!input)
 				return returnable();
 
 			if (fastMode || (fastMode !== false && input.indexOf(quoteChar) === -1))
 			{
+				console.log('Fast Mode')
 				var rows = input.split(newline);
 				for (var i = 0; i < rows.length; i++)
 				{
@@ -1558,6 +1565,10 @@ License: MIT
 						if (input[quoteSearch + 1 + spacesBetweenQuoteAndDelimiter] === delim)
 						{
 							row.push(input.substring(cursor, quoteSearch).replace(quoteCharRegex, quoteChar));
+							// console.log({
+							// 	row,
+							// 	split: input.substring(cursor, quoteSearch).replace(quoteCharRegex, quoteChar)
+							// })
 							cursor = quoteSearch + 1 + spacesBetweenQuoteAndDelimiter + delimLen;
 
 							// If char after following delimiter is not quoteChar, we find next quote char position
@@ -1576,6 +1587,10 @@ License: MIT
 						if (input.substring(quoteSearch + 1 + spacesBetweenQuoteAndNewLine, quoteSearch + 1 + spacesBetweenQuoteAndNewLine + newlineLen) === newline)
 						{
 							row.push(input.substring(cursor, quoteSearch).replace(quoteCharRegex, quoteChar));
+							// console.log({
+							// 	row,
+							// 	split: input.substring(cursor, quoteSearch).replace(quoteCharRegex, quoteChar)
+							// })
 							saveRow(quoteSearch + 1 + spacesBetweenQuoteAndNewLine + newlineLen);
 							nextDelim = input.indexOf(delim, cursor);	// because we may have skipped the nextDelim in the quoted field
 							quoteSearch = input.indexOf(quoteChar, cursor);	// we search for first quote in next line
@@ -1626,6 +1641,10 @@ License: MIT
 				if (nextDelim !== -1 && (nextDelim < nextNewline || nextNewline === -1))
 				{
 					row.push(input.substring(cursor, nextDelim));
+					// console.log({
+					// 	row,
+					// 	split: input.substring(cursor, nextDelim)
+					// })
 					cursor = nextDelim + delimLen;
 					// we look for next delimiter char
 					nextDelim = input.indexOf(delim, cursor);
@@ -1636,6 +1655,10 @@ License: MIT
 				if (nextNewline !== -1)
 				{
 					row.push(input.substring(cursor, nextNewline));
+					// console.log({
+					// 	row,
+					// 	split: input.substring(cursor, nextNewline)
+					// })
 					saveRow(nextNewline + newlineLen);
 
 					if (stepIsFunction)
@@ -1662,6 +1685,7 @@ License: MIT
 			{
 				data.push(row);
 				lastCursor = cursor;
+				lastBytePointer = bytePointer;
 			}
 
 			/**
@@ -1679,6 +1703,10 @@ License: MIT
 				return spaceLength;
 			}
 
+			function byteCount(str) {
+				return encodeURI(str).split(/%(?:u[0-9A-F]{2})?[0-9A-F]{2}|./).length - 1;
+			}
+
 			/**
 			 * Appends the remaining input from cursor to the end into
 			 * row, saves the row, calls step, and returns the results.
@@ -1691,6 +1719,7 @@ License: MIT
 					value = input.substring(cursor);
 				row.push(value);
 				cursor = inputLen;	// important in case parsing is paused
+				bytePointer = byteCount(input)
 				pushRow(row);
 				if (stepIsFunction)
 					doStep();
@@ -1722,7 +1751,8 @@ License: MIT
 						linebreak: newline,
 						aborted: aborted,
 						truncated: !!stopped,
-						cursor: lastCursor + (baseIndex || 0)
+						cursor: lastCursor + (baseIndex || 0),
+						bytePointer: lastBytePointer
 					}
 				};
 			}
