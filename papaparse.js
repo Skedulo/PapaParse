@@ -203,7 +203,6 @@ License: MIT
 		if (_config.worker && Papa.WORKERS_SUPPORTED)
 		{
 			var w = newWorker();
-
 			w.userStep = _config.step;
 			w.userChunk = _config.chunk;
 			w.userComplete = _config.complete;
@@ -480,6 +479,7 @@ License: MIT
 		this._input = null;
 		this._baseIndex = 0;
 		this._partialLine = '';
+		this._currentByteCursor = 0;
 		this._rowCount = 0;
 		this._start = 0;
 		this._nextChunk = null;
@@ -490,6 +490,11 @@ License: MIT
 			meta: {}
 		};
 		replaceConfig.call(this, config);
+
+		this.calculateTotalByteByString = function(text)
+		{
+			return new Blob([text]).size
+		}
 
 		this.parseChunk = function(chunk, isFakeChunk)
 		{
@@ -508,7 +513,6 @@ License: MIT
 			this._partialLine = '';
 
 			var results = this._handle.parse(aggregate, this._baseIndex, !this._finished);
-
 			if (this._handle.paused() || this._handle.aborted()) {
 				this._halted = true;
 				return;
@@ -522,6 +526,7 @@ License: MIT
 				this._baseIndex = lastIndex;
 			}
 
+			 this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate)
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
@@ -530,7 +535,11 @@ License: MIT
 			if (IS_PAPA_WORKER)
 			{
 				global.postMessage({
-					results: results,
+					results: Object.assign(results, {
+						meta: Object.assign(results.meta, {
+							currentByteCursor: this._currentByteCursor
+						})
+					}),
 					workerId: Papa.WORKER_ID,
 					finished: finishedIncludingPreview
 				});
@@ -559,7 +568,6 @@ License: MIT
 
 			if (!finishedIncludingPreview && (!results || !results.meta.paused))
 				this._nextChunk();
-
 			return results;
 		};
 
@@ -1450,8 +1458,9 @@ License: MIT
 			cursor = 0;
 			var data = [], errors = [], row = [], lastCursor = 0;
 
-			if (!input)
+			if (!input) {
 				return returnable();
+			}
 
 			if (fastMode || (fastMode !== false && input.indexOf(quoteChar) === -1))
 			{
@@ -1460,8 +1469,9 @@ License: MIT
 				{
 					row = rows[i];
 					cursor += row.length;
-					if (i !== rows.length - 1)
+					if (i !== rows.length - 1) {
 						cursor += newline.length;
+					}
 					else if (ignoreLastRow)
 						return returnable();
 					if (comments && row.substring(0, commentsLen) === comments)
@@ -1663,6 +1673,7 @@ License: MIT
 				data.push(row);
 				lastCursor = cursor;
 			}
+
 
 			/**
              * checks if there are extra spaces after closing quote and given index without any text
