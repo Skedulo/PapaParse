@@ -493,8 +493,8 @@ License: MIT
 
 		this.calculateTotalByteByString = function(text)
 		{
-			return new Blob([text]).size
-		}
+			return new Blob([text]).size;
+		};
 
 		this.parseChunk = function(chunk, isFakeChunk)
 		{
@@ -526,7 +526,7 @@ License: MIT
 				this._baseIndex = lastIndex;
 			}
 
-			 this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate)
+			this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
