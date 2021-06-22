@@ -496,7 +496,7 @@ License: MIT
 			return new Blob([text]).size;
 		};
 
-		this.parseChunk = function(chunk, isFakeChunk)
+		this.parseChunk = function(chunk, isFakeChunk, isBOMDetected)
 		{
 			// First chunk pre-processing
 			if (this.isFirstChunk && isFunction(this._config.beforeFirstChunk))
@@ -525,8 +525,13 @@ License: MIT
 				this._partialLine = aggregate.substring(lastIndex - this._baseIndex);
 				this._baseIndex = lastIndex;
 			}
-
+			var byteOffset = isBOMDetected ? 3 : 0;
 			this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
+			results = Object.assign(results, {
+				meta: Object.assign(results.meta, {
+					currentByteCursor: this._currentByteCursor + byteOffset
+				})
+			});
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
@@ -535,11 +540,7 @@ License: MIT
 			if (IS_PAPA_WORKER)
 			{
 				global.postMessage({
-					results: Object.assign(results, {
-						meta: Object.assign(results.meta, {
-							currentByteCursor: this._currentByteCursor
-						})
-					}),
+					results: results,
 					workerId: Papa.WORKER_ID,
 					finished: finishedIncludingPreview
 				});
@@ -723,11 +724,34 @@ License: MIT
 			config.chunkSize = Papa.LocalChunkSize;
 		ChunkStreamer.call(this, config);
 
-		var reader, slice;
+		var reader, slice, isBOMDetected;
 
 		// FileReader is better than FileReaderSync (even in worker) - see http://stackoverflow.com/q/24708649/1048862
 		// But Firefox is a pill, too - see issue #76: https://github.com/mholt/PapaParse/issues/76
 		var usingAsyncReader = typeof FileReader !== 'undefined';	// Safari doesn't consider it a function - see issue #105
+
+		this._checkByteOrderMark = function(file) {
+			return new Promise(function(resolve, reject) {
+				try{
+					var first3byteData = file.slice(0, 3);
+					first3byteData.arrayBuffer().then(function(arrayBuffer) {
+						/* check the first 3 bytes of the file to detect BOM, Hex code : 0xEF 0xBB 0xBF , Unit8: 239 187 191 */
+						// eslint-disable-next-line no-undef
+						var byteArray = new Uint8Array(arrayBuffer);
+						var firstByte = byteArray[0];
+						var secondByte = byteArray[1];
+						var thirdByte = byteArray[2];
+						if (firstByte === 239 && secondByte === 187 && thirdByte === 191) {
+							resolve(true);
+						}
+						resolve(false);
+					});
+				}catch(ex) {
+					reject(ex);
+				}
+			});
+		};
+
 
 		this.stream = function(file)
 		{
@@ -743,7 +767,11 @@ License: MIT
 			else
 				reader = new FileReaderSync();	// Hack for running in a web worker in Firefox
 
-			this._nextChunk();	// Starts streaming
+			var _this = this;
+			this._checkByteOrderMark(this._input).then(function(BOMDetected) {
+				isBOMDetected = BOMDetected;
+				_this._nextChunk();	// Starts streaming
+			});
 		};
 
 		this._nextChunk = function()
@@ -770,7 +798,7 @@ License: MIT
 			// Very important to increment start each time before handling results
 			this._start += this._config.chunkSize;
 			this._finished = !this._config.chunkSize || this._start >= this._input.size;
-			this.parseChunk(event.target.result);
+			this.parseChunk(event.target.result, undefined ,isBOMDetected);
 		};
 
 		this._chunkError = function()
