@@ -4,6 +4,7 @@ v5.3.0
 https://github.com/mholt/PapaParse
 License: MIT
 */
+
 (function(root, factory)
 {
 	/* globals define */
@@ -478,6 +479,7 @@ License: MIT
 		this._input = null;
 		this._baseIndex = 0;
 		this._partialLine = '';
+		this._currentByteCursor = 0;
 		this._rowCount = 0;
 		this._start = 0;
 		this._nextChunk = null;
@@ -489,7 +491,12 @@ License: MIT
 		};
 		replaceConfig.call(this, config);
 
-		this.parseChunk = function(chunk, isFakeChunk, isBOMDetected)
+		this.calculateTotalByteByString = function(text)
+		{
+			return new Blob([text]).size;
+		};
+
+		this.parseChunk = function(chunk, isFakeChunk)
 		{
 			// First chunk pre-processing
 			if (this.isFirstChunk && isFunction(this._config.beforeFirstChunk))
@@ -504,8 +511,8 @@ License: MIT
 			// Rejoin the line we likely just split in two by chunking the file
 			var aggregate = this._partialLine + chunk;
 			this._partialLine = '';
-			var byteOffset = isBOMDetected ? 3 : 0;
-			var results = this._handle.parse(aggregate, this._baseIndex, !this._finished, this._partialLine, byteOffset);
+
+			var results = this._handle.parse(aggregate, this._baseIndex, !this._finished);
 			if (this._handle.paused() || this._handle.aborted()) {
 				this._halted = true;
 				return;
@@ -519,6 +526,7 @@ License: MIT
 				this._baseIndex = lastIndex;
 			}
 
+			this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
@@ -527,7 +535,11 @@ License: MIT
 			if (IS_PAPA_WORKER)
 			{
 				global.postMessage({
-					results: results,
+					results: Object.assign(results, {
+						meta: Object.assign(results.meta, {
+							currentByteCursor: this._currentByteCursor
+						})
+					}),
 					workerId: Papa.WORKER_ID,
 					finished: finishedIncludingPreview
 				});
@@ -711,33 +723,11 @@ License: MIT
 			config.chunkSize = Papa.LocalChunkSize;
 		ChunkStreamer.call(this, config);
 
-		var reader, slice, isBOMDetected;
+		var reader, slice;
 
 		// FileReader is better than FileReaderSync (even in worker) - see http://stackoverflow.com/q/24708649/1048862
 		// But Firefox is a pill, too - see issue #76: https://github.com/mholt/PapaParse/issues/76
 		var usingAsyncReader = typeof FileReader !== 'undefined';	// Safari doesn't consider it a function - see issue #105
-
-		this._checkByteOrderMark = function(file) {
-			return new Promise(function(resolve, reject) {
-				try{
-					var first3byteData = file.slice(0, 3);
-					first3byteData.arrayBuffer().then(function(arrayBuffer) {
-						/* check the first 3 bytes of the file to detect BOM, Hex code : 0xEF 0xBB 0xBF , Unit8: 239 187 191 */
-						// eslint-disable-next-line no-undef
-						var byteArray = new Uint8Array(arrayBuffer);
-						var firstByte = byteArray[0];
-						var secondByte = byteArray[1];
-						var thirdByte = byteArray[2];
-						if (firstByte === 239 && secondByte === 187 && thirdByte === 191) {
-							resolve(true);
-						}
-						resolve(false);
-					});
-				}catch(ex) {
-					reject(ex);
-				}
-			});
-		};
 
 		this.stream = function(file)
 		{
@@ -753,11 +743,7 @@ License: MIT
 			else
 				reader = new FileReaderSync();	// Hack for running in a web worker in Firefox
 
-			var _this = this;
-			this._checkByteOrderMark(this._input).then(function(BOMDetected) {
-				isBOMDetected = BOMDetected;
-				_this._nextChunk();	// Starts streaming
-			});
+			this._nextChunk();	// Starts streaming
 		};
 
 		this._nextChunk = function()
@@ -784,7 +770,7 @@ License: MIT
 			// Very important to increment start each time before handling results
 			this._start += this._config.chunkSize;
 			this._finished = !this._config.chunkSize || this._start >= this._input.size;
-			this.parseChunk(event.target.result, undefined ,isBOMDetected);
+			this.parseChunk(event.target.result);
 		};
 
 		this._chunkError = function()
@@ -1079,7 +1065,7 @@ License: MIT
 		 * and ignoreLastRow parameters. They are used by streamers (wrapper functions)
 		 * when an input comes in multiple chunks, like from a file.
 		 */
-		this.parse = function(input, baseIndex, ignoreLastRow, partialLine, offset)
+		this.parse = function(input, baseIndex, ignoreLastRow)
 		{
 			var quoteChar = _config.quoteChar || '"';
 			if (!_config.newline)
@@ -1110,7 +1096,7 @@ License: MIT
 
 			_input = input;
 			_parser = new Parser(parserConfig);
-			_results = _parser.parse(_input, baseIndex, ignoreLastRow, partialLine, offset);
+			_results = _parser.parse(_input, baseIndex, ignoreLastRow);
 			processResults();
 			return _paused ? { meta: { paused: true } } : (_results || { meta: { paused: false } });
 		};
@@ -1454,12 +1440,11 @@ License: MIT
 		var cursor = 0;
 		var aborted = false;
 
-		this.parse = function(input, baseIndex, ignoreLastRow, partialLine, offset)
+		this.parse = function(input, baseIndex, ignoreLastRow)
 		{
 			// For some reason, in Chrome, this speeds things up (!?)
 			if (typeof input !== 'string')
 				throw new Error('Input must be a string');
-			if (!offset) offset = 0;
 
 			// We don't need to compute some of these every time parse() is called,
 			// but having them in a more local scope seems to perform better
@@ -1471,7 +1456,6 @@ License: MIT
 
 			// Establish starting state
 			cursor = 0;
-			var currentByteCursor = (partialLine ? this.calculateTotalByteByString(input) - this.calculateTotalByteByString(partialLine) : this.calculateTotalByteByString(input)) + offset;
 			var data = [], errors = [], row = [], lastCursor = 0;
 
 			if (!input) {
@@ -1749,8 +1733,7 @@ License: MIT
 						linebreak: newline,
 						aborted: aborted,
 						truncated: !!stopped,
-						cursor: lastCursor + (baseIndex || 0),
-						currentByteCursor: currentByteCursor
+						cursor: lastCursor + (baseIndex || 0)
 					}
 				};
 			}
@@ -1762,11 +1745,6 @@ License: MIT
 				data = [];
 				errors = [];
 			}
-		};
-
-		this.calculateTotalByteByString = function(text)
-		{
-			return new Blob([text]).size;
 		};
 
 		/** Sets the abort flag */
