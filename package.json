@@ -1,6 +1,6 @@
 {
 	"name": "@skedulo/csv-parser-for-dataloading",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"description": "Fast and powerful CSV parser for the browser that supports web workers and streaming large files. Converts CSV to JSON and JSON to CSV built on top of Papaparse.",
 	"keywords": [
 		"csv",

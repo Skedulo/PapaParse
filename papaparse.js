@@ -4,6 +4,7 @@ v5.3.0
 https://github.com/mholt/PapaParse
 License: MIT
 */
+
 (function(root, factory)
 {
 	/* globals define */
@@ -478,6 +479,7 @@ License: MIT
 		this._input = null;
 		this._baseIndex = 0;
 		this._partialLine = '';
+		this._currentByteCursor = 0;
 		this._rowCount = 0;
 		this._start = 0;
 		this._nextChunk = null;
@@ -488,6 +490,11 @@ License: MIT
 			meta: {}
 		};
 		replaceConfig.call(this, config);
+
+		this.calculateTotalByteByString = function(text)
+		{
+			return new Blob([text]).size;
+		};
 
 		this.parseChunk = function(chunk, isFakeChunk, isBOMDetected)
 		{
@@ -504,8 +511,8 @@ License: MIT
 			// Rejoin the line we likely just split in two by chunking the file
 			var aggregate = this._partialLine + chunk;
 			this._partialLine = '';
-			var byteOffset = isBOMDetected ? 3 : 0;
-			var results = this._handle.parse(aggregate, this._baseIndex, !this._finished, this._partialLine, byteOffset);
+
+			var results = this._handle.parse(aggregate, this._baseIndex, !this._finished);
 			if (this._handle.paused() || this._handle.aborted()) {
 				this._halted = true;
 				return;
@@ -518,7 +525,13 @@ License: MIT
 				this._partialLine = aggregate.substring(lastIndex - this._baseIndex);
 				this._baseIndex = lastIndex;
 			}
-
+			var byteOffset = isBOMDetected ? 3 : 0;
+			this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
+			results = Object.assign(results, {
+				meta: Object.assign(results.meta, {
+					currentByteCursor: this._currentByteCursor + byteOffset
+				})
+			});
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
@@ -738,6 +751,7 @@ License: MIT
 				}
 			});
 		};
+
 
 		this.stream = function(file)
 		{
@@ -1079,7 +1093,7 @@ License: MIT
 		 * and ignoreLastRow parameters. They are used by streamers (wrapper functions)
 		 * when an input comes in multiple chunks, like from a file.
 		 */
-		this.parse = function(input, baseIndex, ignoreLastRow, partialLine, offset)
+		this.parse = function(input, baseIndex, ignoreLastRow)
 		{
 			var quoteChar = _config.quoteChar || '"';
 			if (!_config.newline)
@@ -1110,7 +1124,7 @@ License: MIT
 
 			_input = input;
 			_parser = new Parser(parserConfig);
-			_results = _parser.parse(_input, baseIndex, ignoreLastRow, partialLine, offset);
+			_results = _parser.parse(_input, baseIndex, ignoreLastRow);
 			processResults();
 			return _paused ? { meta: { paused: true } } : (_results || { meta: { paused: false } });
 		};
@@ -1454,12 +1468,11 @@ License: MIT
 		var cursor = 0;
 		var aborted = false;
 
-		this.parse = function(input, baseIndex, ignoreLastRow, partialLine, offset)
+		this.parse = function(input, baseIndex, ignoreLastRow)
 		{
 			// For some reason, in Chrome, this speeds things up (!?)
 			if (typeof input !== 'string')
 				throw new Error('Input must be a string');
-			if (!offset) offset = 0;
 
 			// We don't need to compute some of these every time parse() is called,
 			// but having them in a more local scope seems to perform better
@@ -1471,7 +1484,6 @@ License: MIT
 
 			// Establish starting state
 			cursor = 0;
-			var currentByteCursor = (partialLine ? this.calculateTotalByteByString(input) - this.calculateTotalByteByString(partialLine) : this.calculateTotalByteByString(input)) + offset;
 			var data = [], errors = [], row = [], lastCursor = 0;
 
 			if (!input) {
@@ -1749,8 +1761,7 @@ License: MIT
 						linebreak: newline,
 						aborted: aborted,
 						truncated: !!stopped,
-						cursor: lastCursor + (baseIndex || 0),
-						currentByteCursor: currentByteCursor
+						cursor: lastCursor + (baseIndex || 0)
 					}
 				};
 			}
@@ -1762,11 +1773,6 @@ License: MIT
 				data = [];
 				errors = [];
 			}
-		};
-
-		this.calculateTotalByteByString = function(text)
-		{
-			return new Blob([text]).size;
 		};
 
 		/** Sets the abort flag */
