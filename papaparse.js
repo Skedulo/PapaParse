@@ -223,27 +223,52 @@ License: MIT
 			return;
 		}
 
+		var globalReference = {
+			startByte: 0,
+			endByte: 0,
+			checkByteOrderMark: function(file) {
+				return new Promise(function(resolve, reject) {
+					try{
+						var first3byteData = file.slice(0, 3);
+						first3byteData.arrayBuffer().then(function(arrayBuffer) {
+							/* check the first 3 bytes of the file to detect BOM, Hex code : 0xEF 0xBB 0xBF , Unit8: 239 187 191 */
+							// eslint-disable-next-line no-undef
+							var byteArray = new Uint8Array(arrayBuffer);
+							var firstByte = byteArray[0];
+							var secondByte = byteArray[1];
+							var thirdByte = byteArray[2];
+							if (firstByte === 239 && secondByte === 187 && thirdByte === 191) {
+								resolve(true);
+							}
+							resolve(false);
+						});
+					}catch(ex) {
+						reject(ex);
+					}
+				});
+			}
+		};
 		var streamer = null;
 		if (_input === Papa.NODE_STREAM_INPUT && typeof PAPA_BROWSER_CONTEXT === 'undefined')
 		{
 			// create a node Duplex stream for use
 			// with .pipe
-			streamer = new DuplexStreamStreamer(_config);
+			streamer = new DuplexStreamStreamer(_config, globalReference);
 			return streamer.getStream();
 		}
 		else if (typeof _input === 'string')
 		{
 			if (_config.download)
-				streamer = new NetworkStreamer(_config);
+				streamer = new NetworkStreamer(_config, globalReference);
 			else
-				streamer = new StringStreamer(_config);
+				streamer = new StringStreamer(_config, globalReference);
 		}
 		else if (_input.readable === true && isFunction(_input.read) && isFunction(_input.on))
 		{
-			streamer = new ReadableStreamStreamer(_config);
+			streamer = new ReadableStreamStreamer(_config, globalReference);
 		}
 		else if ((global.File && _input instanceof File) || _input instanceof Object)	// ...Safari. (see issue #106)
-			streamer = new FileStreamer(_config);
+			streamer = new FileStreamer(_config, globalReference);
 
 		return streamer.stream(_input);
 	}
@@ -470,7 +495,7 @@ License: MIT
 	}
 
 	/** ChunkStreamer is the base prototype for various streamer implementations. */
-	function ChunkStreamer(config)
+	function ChunkStreamer(config, globalReference)
 	{
 		this._handle = null;
 		this._finished = false;
@@ -479,7 +504,6 @@ License: MIT
 		this._input = null;
 		this._baseIndex = 0;
 		this._partialLine = '';
-		this._currentByteCursor = 0;
 		this._rowCount = 0;
 		this._start = 0;
 		this._nextChunk = null;
@@ -496,7 +520,7 @@ License: MIT
 			return new Blob([text]).size;
 		};
 
-		this.parseChunk = function(chunk, isFakeChunk, isBOMDetected)
+		this.parseChunk = function(chunk, isFakeChunk)
 		{
 			// First chunk pre-processing
 			if (this.isFirstChunk && isFunction(this._config.beforeFirstChunk))
@@ -525,13 +549,15 @@ License: MIT
 				this._partialLine = aggregate.substring(lastIndex - this._baseIndex);
 				this._baseIndex = lastIndex;
 			}
-			var byteOffset = isBOMDetected ? 3 : 0;
-			this._currentByteCursor += this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
+			var totalByteForThisChunk = this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
+			globalReference.endByte += totalByteForThisChunk;
 			results = Object.assign(results, {
 				meta: Object.assign(results.meta, {
-					currentByteCursor: this._currentByteCursor + byteOffset
+					endByte: globalReference.endByte,
+					startByte: globalReference.startByte
 				})
 			});
+			globalReference.startByte += totalByteForThisChunk;
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
@@ -600,12 +626,12 @@ License: MIT
 	}
 
 
-	function NetworkStreamer(config)
+	function NetworkStreamer(config, globalReference)
 	{
 		config = config || {};
 		if (!config.chunkSize)
 			config.chunkSize = Papa.RemoteChunkSize;
-		ChunkStreamer.call(this, config);
+		ChunkStreamer.call(this, config, globalReference);
 
 		var xhr;
 
@@ -717,41 +743,18 @@ License: MIT
 	NetworkStreamer.prototype.constructor = NetworkStreamer;
 
 
-	function FileStreamer(config)
+	function FileStreamer(config, globalReference)
 	{
 		config = config || {};
 		if (!config.chunkSize)
 			config.chunkSize = Papa.LocalChunkSize;
-		ChunkStreamer.call(this, config);
+		ChunkStreamer.call(this, config, globalReference);
 
-		var reader, slice, isBOMDetected;
+		var reader, slice;
 
 		// FileReader is better than FileReaderSync (even in worker) - see http://stackoverflow.com/q/24708649/1048862
 		// But Firefox is a pill, too - see issue #76: https://github.com/mholt/PapaParse/issues/76
 		var usingAsyncReader = typeof FileReader !== 'undefined';	// Safari doesn't consider it a function - see issue #105
-
-		this._checkByteOrderMark = function(file) {
-			return new Promise(function(resolve, reject) {
-				try{
-					var first3byteData = file.slice(0, 3);
-					first3byteData.arrayBuffer().then(function(arrayBuffer) {
-						/* check the first 3 bytes of the file to detect BOM, Hex code : 0xEF 0xBB 0xBF , Unit8: 239 187 191 */
-						// eslint-disable-next-line no-undef
-						var byteArray = new Uint8Array(arrayBuffer);
-						var firstByte = byteArray[0];
-						var secondByte = byteArray[1];
-						var thirdByte = byteArray[2];
-						if (firstByte === 239 && secondByte === 187 && thirdByte === 191) {
-							resolve(true);
-						}
-						resolve(false);
-					});
-				}catch(ex) {
-					reject(ex);
-				}
-			});
-		};
-
 
 		this.stream = function(file)
 		{
@@ -768,8 +771,11 @@ License: MIT
 				reader = new FileReaderSync();	// Hack for running in a web worker in Firefox
 
 			var _this = this;
-			this._checkByteOrderMark(this._input).then(function(BOMDetected) {
-				isBOMDetected = BOMDetected;
+			var byteOffset = 0;
+			globalReference.checkByteOrderMark(this._input).then(function(BOMDetected) {
+				byteOffset += BOMDetected ? 3 : 0;
+				globalReference.startByte += byteOffset;
+				globalReference.endByte += byteOffset;
 				_this._nextChunk();	// Starts streaming
 			});
 		};
@@ -798,7 +804,7 @@ License: MIT
 			// Very important to increment start each time before handling results
 			this._start += this._config.chunkSize;
 			this._finished = !this._config.chunkSize || this._start >= this._input.size;
-			this.parseChunk(event.target.result, undefined ,isBOMDetected);
+			this.parseChunk(event.target.result);
 		};
 
 		this._chunkError = function()
@@ -811,10 +817,10 @@ License: MIT
 	FileStreamer.prototype.constructor = FileStreamer;
 
 
-	function StringStreamer(config)
+	function StringStreamer(config, globalReference)
 	{
 		config = config || {};
-		ChunkStreamer.call(this, config);
+		ChunkStreamer.call(this, config, globalReference);
 
 		var remaining;
 		this.stream = function(s)
@@ -842,11 +848,11 @@ License: MIT
 	StringStreamer.prototype.constructor = StringStreamer;
 
 
-	function ReadableStreamStreamer(config)
+	function ReadableStreamStreamer(config, globalReference)
 	{
 		config = config || {};
 
-		ChunkStreamer.call(this, config);
+		ChunkStreamer.call(this, config, globalReference);
 
 		var queue = [];
 		var parseOnData = true;
@@ -936,7 +942,7 @@ License: MIT
 	ReadableStreamStreamer.prototype.constructor = ReadableStreamStreamer;
 
 
-	function DuplexStreamStreamer(_config) {
+	function DuplexStreamStreamer(_config, globalReference) {
 		var Duplex = require('stream').Duplex;
 		var config = copy(_config);
 		var parseOnWrite = true;
@@ -964,7 +970,7 @@ License: MIT
 
 		config.step = bindFunction(this._onCsvData, this);
 		config.complete = bindFunction(this._onCsvComplete, this);
-		ChunkStreamer.call(this, config);
+		ChunkStreamer.call(this, config, globalReference);
 
 		this._nextChunk = function()
 		{
