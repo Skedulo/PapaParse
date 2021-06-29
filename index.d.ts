@@ -159,7 +159,8 @@ export interface ParseMeta {
     fields?: string[]; // Array of field names
     truncated: boolean; // Whether preview consumed all input
     cursor: number;
-    currentByteCursor: number; // Cursor of a current byte
+    startByte: number; // Cursor of a start chunk
+    endByte: number; // Cursor of a end chunk
 }
 
 /**
