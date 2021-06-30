@@ -549,7 +549,14 @@ License: MIT
 				this._partialLine = aggregate.substring(lastIndex - this._baseIndex);
 				this._baseIndex = lastIndex;
 			}
-			var totalByteForThisChunk = this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
+			var totalByteForThisChunk = 0;
+			if (config.preview) {
+				var cutStringAtChar = aggregate.substring(0, results.meta.cursor);
+				var totalByteFromCursor = this.calculateTotalByteByString(cutStringAtChar);
+				totalByteForThisChunk = totalByteFromCursor;
+			}else{
+				totalByteForThisChunk = this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
+			}
 			globalReference.endByte += totalByteForThisChunk;
 			results = Object.assign(results, {
 				meta: Object.assign(results.meta, {
