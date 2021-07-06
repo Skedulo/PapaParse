@@ -31,7 +31,9 @@ function assertLongSampleParsedCorrectly(parsedCsv) {
 		"linebreak": "\n",
 		"aborted": false,
 		"truncated": false,
-		"cursor": 1209
+		"cursor": 1209,
+		"startByte": 0,
+		"endByte": 1209
 	});
 	assert.equal(parsedCsv.errors.length, 0);
 }
@@ -92,6 +94,9 @@ describe('PapaParse', function() {
 				assertLongSampleParsedCorrectly(parsedCsv);
 				done();
 			},
+			error: function(err) {
+				done(err);
+			}
 		});
 	});
 

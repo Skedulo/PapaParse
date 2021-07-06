@@ -40,6 +40,7 @@ License: MIT
 		if (typeof self !== 'undefined') { return self; }
 		if (typeof window !== 'undefined') { return window; }
 		if (typeof global !== 'undefined') { return global; }
+		if (typeof globalThis !== 'undefined') { return globalThis; }
 
 		// When running tests none of the above have been defined
 		return {};
@@ -224,6 +225,7 @@ License: MIT
 		}
 
 		var globalReference = {
+			initStartByte: 0,
 			startByte: 0,
 			endByte: 0,
 			checkByteOrderMark: function(file) {
@@ -517,7 +519,14 @@ License: MIT
 
 		this.calculateTotalByteByString = function(text)
 		{
-			return new Blob([text]).size;
+			if (global.Blob) {
+				// browser
+				return new global.Blob([text]).size;
+			}
+			//node.js
+			if (global.Buffer) {
+				return global.Buffer.byteLength(text, 'utf8');
+			}
 		};
 
 		this.parseChunk = function(chunk, isFakeChunk)
@@ -558,8 +567,8 @@ License: MIT
 				totalByteForThisChunk = this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
 			}
 			globalReference.endByte += totalByteForThisChunk;
-			results = Object.assign(results, {
-				meta: Object.assign(results.meta, {
+			results = Object.assign({}, results, {
+				meta: Object.assign({}, results.meta, {
 					endByte: globalReference.endByte,
 					startByte: globalReference.startByte
 				})
@@ -592,7 +601,10 @@ License: MIT
 			if (!this._config.step && !this._config.chunk) {
 				this._completeResults.data = this._completeResults.data.concat(results.data);
 				this._completeResults.errors = this._completeResults.errors.concat(results.errors);
-				this._completeResults.meta = results.meta;
+				this._completeResults.meta = Object.assign({}, results.meta, {
+					startByte: globalReference.initStartByte,
+					endByte: globalReference.endByte
+				});
 			}
 
 			if (!this._completed && finishedIncludingPreview && isFunction(this._config.complete) && (!results || !results.meta.aborted)) {
@@ -782,6 +794,7 @@ License: MIT
 			globalReference.checkByteOrderMark(this._input).then(function(BOMDetected) {
 				byteOffset += BOMDetected ? 3 : 0;
 				globalReference.startByte += byteOffset;
+				globalReference.initStartByte += byteOffset;
 				globalReference.endByte += byteOffset;
 				_this._nextChunk();	// Starts streaming
 			});
