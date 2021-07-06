@@ -26,13 +26,13 @@ function assertLongSampleParsedCorrectly(parsedCsv) {
 		'Aliquam Iaculis Incorporate',
 		'Phasellus@Quisquetincidunt.example'
 	]);
-	// assert.deepEqual(parsedCsv.meta, {
-	// 	"delimiter": ",",
-	// 	"linebreak": "\n",
-	// 	"aborted": false,
-	// 	"truncated": false,
-	// 	"cursor": 1209
-	// }); // Temporary disable this assertion due to no support for ReadableStream
+	assert.deepEqual(parsedCsv.meta, {
+		"delimiter": ",",
+		"linebreak": "\n",
+		"aborted": false,
+		"truncated": false,
+		"cursor": 1209
+	});
 	assert.equal(parsedCsv.errors.length, 0);
 }
 
@@ -91,7 +91,7 @@ describe('PapaParse', function() {
 			complete: function(parsedCsv) {
 				assertLongSampleParsedCorrectly(parsedCsv);
 				done();
-			}
+			},
 		});
 	});
 
