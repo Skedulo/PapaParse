@@ -265,7 +265,7 @@ License: MIT
 		}
 		else if (_input.readable === true && isFunction(_input.read) && isFunction(_input.on))
 		{
-			streamer = new ReadableStreamStreamer(_config, globalReference);
+			streamer = new ReadableStreamStreamer(_config);
 		}
 		else if ((global.File && _input instanceof File) || _input instanceof Object)	// ...Safari. (see issue #106)
 			streamer = new FileStreamer(_config, globalReference);
@@ -517,7 +517,10 @@ License: MIT
 
 		this.calculateTotalByteByString = function(text)
 		{
-			return new Blob([text]).size;
+			if (global.Blob) {
+				return new global.Blob([text]).size;
+			}
+			return Buffer.byteLength(text, 'utf8');
 		};
 
 		this.parseChunk = function(chunk, isFakeChunk)
@@ -557,14 +560,16 @@ License: MIT
 			}else{
 				totalByteForThisChunk = this._partialLine ? this.calculateTotalByteByString(aggregate) - this.calculateTotalByteByString(this._partialLine) : this.calculateTotalByteByString(aggregate);
 			}
-			globalReference.endByte += totalByteForThisChunk;
-			results = Object.assign(results, {
-				meta: Object.assign(results.meta, {
-					endByte: globalReference.endByte,
-					startByte: globalReference.startByte
-				})
-			});
-			globalReference.startByte += totalByteForThisChunk;
+			if (globalReference) {
+				globalReference.endByte += totalByteForThisChunk;
+				results = Object.assign(results, {
+					meta: Object.assign(results.meta, {
+						endByte: globalReference.endByte,
+						startByte: globalReference.startByte
+					})
+				});
+				globalReference.startByte += totalByteForThisChunk;
+			}
 			if (results && results.data)
 				this._rowCount += results.data.length;
 
