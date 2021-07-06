@@ -1446,7 +1446,7 @@ License: MIT
 		var comments = config.comments;
 		var step = config.step;
 		var preview = config.preview;
-		var fastMode = config.fastMode;
+		var fastMode = config.fastMode || false;
 		var quoteChar;
 		/** Allows for no quoteChar by setting quoteChar to undefined in config */
 		if (config.quoteChar === undefined) {
