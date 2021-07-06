@@ -1506,7 +1506,23 @@ var PARSE_TESTS = [
 			data: [['a', 'b', 'c\n'], ['d', 'e', 'f']],
 			errors: []
 		}
-	}
+	},
+	{
+		description: "Preview = 1 and fastmode not set",
+		input: 'F1,F2,F3,F4 4.1,F5\r\nD1,D2,D3 3.1 3.2,D4,D5',
+		config: { preview: 1, worker: true },
+		expected: {
+			errors: [],
+			meta: {
+				linebreak: '\r\n',
+				delimiter: ',',
+				cursor: 41,
+				startByte: 0,
+				endByte: 41,
+				fields: ['F1', 'F2', 'F3', 'F4 4.1', 'F5'],
+			}
+		}
+	},
 ];
 
 describe('Parse Tests', function() {
@@ -1880,7 +1896,7 @@ var UNPARSE_TESTS = [
 		input: [{ "Col1": "=danger", "Col2": "@danger", "Col3": "safe" }, { "Col1": "safe=safe", "Col2": "+danger", "Col3": "-danger, danger" }, { "Col1": "'+safe", "Col2": "'@safe", "Col3": "safe, safe" }],
 		config: { escapeFormulae: true, quotes: true, quoteChar: "'", escapeChar: "'" },
 		expected: '\'Col1\',\'Col2\',\'Col3\'\r\n\'\'\'=danger\',\'\'\'@danger\',\'safe\'\r\n\'safe=safe\',\'\'\'+danger\',\'\'\'-danger, danger\'\r\n\'\'\'+safe\',\'\'\'@safe\',\'safe, safe\''
-	},
+	}
 ];
 
 describe('Unparse Tests', function() {
