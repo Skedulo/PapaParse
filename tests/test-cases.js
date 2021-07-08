@@ -1354,6 +1354,8 @@ var PARSE_TESTS = [
 				linebreak: '\r\n',
 				delimiter: ',',
 				cursor: 23,
+				startByte: 0,
+				endByte: 23,
 				aborted: false,
 				truncated: false
 			}
@@ -1370,6 +1372,8 @@ var PARSE_TESTS = [
 				linebreak: '\n',
 				delimiter: ',',
 				cursor: 19,
+				startByte: 0,
+				endByte: 19,
 				aborted: false,
 				truncated: false
 			}
@@ -1386,6 +1390,8 @@ var PARSE_TESTS = [
 				linebreak: '\r\n',
 				delimiter: ',',
 				cursor: 28,
+				startByte: 0,
+				endByte: 28,
 				aborted: false,
 				truncated: false
 			}
@@ -1402,6 +1408,8 @@ var PARSE_TESTS = [
 				linebreak: '\r\n',
 				delimiter: ',',
 				cursor: 27,
+				startByte: 0,
+				endByte: 27,
 				aborted: false,
 				truncated: false
 			}
@@ -1418,6 +1426,8 @@ var PARSE_TESTS = [
 				linebreak: '\r\n',
 				delimiter: ',',
 				cursor: 29,
+				startByte: 0,
+				endByte: 29,
 				aborted: false,
 				truncated: false
 			}
@@ -1434,6 +1444,8 @@ var PARSE_TESTS = [
 				linebreak: '\n',
 				delimiter: ',',
 				cursor: 24,
+				startByte: 0,
+				endByte: 24,
 				aborted: false,
 				truncated: false
 			}
@@ -1450,6 +1462,8 @@ var PARSE_TESTS = [
 				linebreak: '\r\n',
 				delimiter: ',',
 				cursor: 27,
+				startByte: 0,
+				endByte: 27,
 				aborted: false,
 				truncated: false
 			}
@@ -1466,6 +1480,8 @@ var PARSE_TESTS = [
 				linebreak: '\r\n',
 				delimiter: ',',
 				cursor: 27,
+				startByte: 0,
+				endByte: 27,
 				aborted: false,
 				truncated: false
 			}
@@ -1510,16 +1526,18 @@ var PARSE_TESTS = [
 	{
 		description: "Preview = 1 and fastmode not set",
 		input: 'F1,F2,F3,F4 4.1,F5\r\nD1,D2,D3 3.1 3.2,D4,D5',
-		config: { preview: 1, worker: true },
+		config: { preview: 1, worker: false },
 		expected: {
+			data: [['F1', 'F2', 'F3', 'F4 4.1', 'F5']],
 			errors: [],
 			meta: {
+				aborted: false,
+				truncated: true,
 				linebreak: '\r\n',
 				delimiter: ',',
-				cursor: 41,
+				cursor: 20,
 				startByte: 0,
-				endByte: 41,
-				fields: ['F1', 'F2', 'F3', 'F4 4.1', 'F5'],
+				endByte: 20,
 			}
 		}
 	},
@@ -1605,7 +1623,25 @@ var PARSE_ASYNC_TESTS = [
 			data: [['A','B','C'],['X','Y','Z']],
 			errors: []
 		}
-	}
+	},
+	{
+		description: "Preview = 1 and fastmode not set",
+		input: 'F1,F2,F3,F4 4.1,F5\r\nD1,D2,D3 3.1 3.2,D4,D5',
+		config: { preview: 1, worker: true },
+		expected: {
+			data: [['F1', 'F2', 'F3', 'F4 4.1', 'F5']],
+			errors: [],
+			meta: {
+				aborted: false,
+				truncated: true,
+				linebreak: '\r\n',
+				delimiter: ',',
+				cursor: 20,
+				startByte: 0,
+				endByte: 20,
+			}
+		}
+	},
 ];
 
 describe('Parse Async Tests', function() {
