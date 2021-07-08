@@ -7,6 +7,9 @@ module.exports = {
 		"worker": true,
 		"node": true
 	},
+	"globals": {
+		"globalThis": false,
+	},
 	"extends": "eslint:recommended",
 	"rules": {
 		"accessor-pairs": "error",
